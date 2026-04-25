@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+openai
+langchain-openai
+langchain-community
+chromadb
+python-dotenv
+langchain
+
+pydantic
+langchain-text-splitters
+langchain-core
+langchain-chroma
+langchain-groq
