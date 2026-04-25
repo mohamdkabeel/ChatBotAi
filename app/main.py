@@ -1,11 +1,20 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any
+
+from starlette.middleware.cors import CORSMiddleware
+
 from app.services.ai_engine import AIEngine
 
 app = FastAPI()
 
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # يسمح لأي موقع يتصل بالـ API
+    allow_credentials=True,
+    allow_methods=["*"],  # GET POST PUT DELETE
+    allow_headers=["*"],   # أي headers
+)
 # =========================
 # SCHEMA
 # =========================
