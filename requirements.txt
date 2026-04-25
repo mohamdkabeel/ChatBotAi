@@ -13,3 +13,4 @@ langchain-core
 langchain-chroma
 langchain-groq
 starlette
+sentence-transformers
