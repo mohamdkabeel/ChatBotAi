@@ -23,9 +23,9 @@ class ChatInput(BaseModel):
     message: str = Field(..., min_length=1)
     history: List[Dict[str, str]] = []
 
-@app.get("/")
-def home():
-    return {"status": "AI API is running "}
+# @app.get("/")
+# def home():
+#     return {"status": "AI API is running "}
 # =========================
 # TRAIN ENDPOINT
 # =========================
