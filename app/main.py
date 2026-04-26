@@ -6,7 +6,11 @@ from starlette.middleware.cors import CORSMiddleware
 
 from app.services.ai_engine import AIEngine
 
-app = FastAPI()
+app = FastAPI(
+    title="ChatBotAi",
+    description="RAG-powered chatbot API using LangChain, ChromaDB, and Groq/OpenAI",
+    version="1.0.0",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,6 +19,7 @@ app.add_middleware(
     allow_methods=["*"],  # GET POST PUT DELETE
     allow_headers=["*"],   # أي headers
 )
+
 # =========================
 # SCHEMA
 # =========================
@@ -23,9 +28,13 @@ class ChatInput(BaseModel):
     message: str = Field(..., min_length=1)
     history: List[Dict[str, str]] = []
 
-# @app.get("/")
-# def home():
-#     return {"status": "AI API is running "}
+# =========================
+# HEALTH CHECK
+# =========================
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "service": "ChatBotAi"}
+
 # =========================
 # TRAIN ENDPOINT
 # =========================
