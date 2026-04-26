@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any
@@ -19,6 +21,16 @@ app.add_middleware(
     allow_methods=["*"],  # GET POST PUT DELETE
     allow_headers=["*"],   # أي headers
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Validate required environment variables on startup"""
+    required_vars = ["GROQ_API_KEY"]
+    missing = [var for var in required_vars if not os.getenv(var)]
+    if missing:
+        raise RuntimeError(
+            f"Missing required environment variables: {', '.join(missing)}"
+        )
 
 # =========================
 # SCHEMA
@@ -66,28 +78,21 @@ async def train(client_id: str = Form(...), file: UploadFile = File(...)):
 # =========================
 @app.post("/chat")
 async def chat(data: ChatInput):
-
     try:
         engine = AIEngine(data.client_id)
-
         response = engine.get_chat_response(
             question=data.message,
             history=data.history or []
         )
-
         return {
             "success": True,
             "bot_response": response
         }
-
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        # مهم جدًا للتطوير بدل ما يضيع الخطأ في 500
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
 
-import os
 import uvicorn
 
 if __name__ == "__main__":
