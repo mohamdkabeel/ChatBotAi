@@ -86,7 +86,12 @@ async def chat(data: ChatInput):
         )
         return {
             "success": True,
-            "bot_response": response
+            "client_id": data.client_id,
+            "bot_response": response,
+            "ui": {
+                "type": "text",
+                "style": "chat"
+            }
         }
     except ValueError as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -12,33 +12,36 @@ from langchain_core.runnables import RunnablePassthrough
 load_dotenv()
 
 
+# 🧠 هنا داتا كل عميل (مؤقتًا - بعدين نخليها DB)
+CLIENT_PROFILES = {
+    "test": {
+        "name": "Test Store",
+        "tone": "friendly sales assistant",
+        "instructions": "You help users buy products and answer questions clearly."
+    }
+}
+
+
 class AIEngine:
     def __init__(self, client_id: str):
         self.client_id = client_id
 
-        # embeddings
         self.embeddings = HuggingFaceEmbeddings(
             model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
 
-        # Use in-memory Chroma for Railway (ephemeral filesystem)
-        # Each client_id gets its own in-memory vector store
         self.vector_db = Chroma(
             collection_name=f"client_{client_id}",
             embedding_function=self.embeddings
         )
 
-        # Initialize LLM with API key validation
         groq_api_key = os.getenv("GROQ_API_KEY")
         if not groq_api_key:
-            raise ValueError(
-                "GROQ_API_KEY environment variable is not set. "
-                "Please set it in Railway variables."
-            )
+            raise ValueError("Missing GROQ_API_KEY")
 
         self.llm = ChatGroq(
             model="llama-3.1-8b-instant",
-            temperature=0,
+            temperature=0.3,
             api_key=groq_api_key
         )
 
@@ -53,10 +56,9 @@ class AIEngine:
         )
 
         docs = splitter.create_documents([text_content])
-
         self.vector_db.add_documents(docs)
 
-        return "تم تدريب البوت بنجاح على بياناتك!"
+        return "Training completed"
 
     # =========================
     # CHAT
@@ -65,32 +67,45 @@ class AIEngine:
 
         retriever = self.vector_db.as_retriever()
 
-        # format history safely
-        history_text = ""
-        for h in history:
-            history_text += f"User: {h.get('user','')}\nBot: {h.get('bot','')}\n"
+        profile = CLIENT_PROFILES.get(self.client_id, {
+            "name": "Store",
+            "tone": "helpful assistant",
+            "instructions": "Answer clearly and concisely."
+        })
+
+        history_text = "\n".join(
+            [f"User: {h.get('user','')} | Bot: {h.get('bot','')}" for h in history]
+        )
+
+        def get_context(_):
+            docs = retriever.invoke(question)
+            return "\n\n".join([d.page_content for d in docs]) if docs else "No context"
 
         prompt = ChatPromptTemplate.from_messages([
             ("system",
-             "You are a helpful AI assistant.\n"
-             "Use the context and chat history to answer clearly.\n\n"
-             "History:\n{history}\n\n"
-             "Context:\n{context}"),
+             f"""
+You are AI assistant for: {profile['name']}
+Style: {profile['tone']}
+Rules: {profile['instructions']}
+
+CHAT HISTORY:
+{history_text}
+
+CONTEXT:
+{{context}}
+
+IMPORTANT:
+- Answer like a real ecommerce assistant
+- Be short, smart, and helpful
+- If product exists in context, recommend it
+"""),
             ("human", "{input}")
         ])
-
-        # FIXED context retrieval (safe + stable)
-        def get_context(_):
-            docs = retriever.invoke(question)
-            if not docs:
-                return "No relevant context found."
-            return "\n\n".join([d.page_content for d in docs])
 
         chain = (
             {
                 "context": get_context,
-                "input": RunnablePassthrough(),
-                "history": lambda _: history_text
+                "input": RunnablePassthrough()
             }
             | prompt
             | self.llm
