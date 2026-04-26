@@ -93,12 +93,9 @@ async def chat(data: ChatInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
 
-<<<<<<< HEAD
 # import os
 # import uvicorn
-=======
 import uvicorn
->>>>>>> c63375d5dbdb56994f8b3480383ed4c7dd03e098
 
 # if __name__ == "__main__":
 #     port = int(os.environ.get("PORT", 8080))
