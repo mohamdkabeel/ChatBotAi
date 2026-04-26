@@ -18,21 +18,28 @@ class AIEngine:
 
         # embeddings
         self.embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
+        )
 
-        self.persist_directory = f"./data/{client_id}"
+        # Use in-memory Chroma for Railway (ephemeral filesystem)
+        # Each client_id gets its own in-memory vector store
+        self.vector_db = Chroma(
+            collection_name=f"client_{client_id}",
+            embedding_function=self.embeddings
+        )
 
-        # ✅ FIX: ما تعتمدش على env دلوقتي عشان المشكلة اللي حصلت
+        # Initialize LLM with API key validation
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        if not groq_api_key:
+            raise ValueError(
+                "GROQ_API_KEY environment variable is not set. "
+                "Please set it in Railway variables."
+            )
+
         self.llm = ChatGroq(
             model="llama-3.1-8b-instant",
             temperature=0,
-             api_key=os.getenv("GROQ_API_KEY")  # أو حطه مباشرة لو عايز test
-        )
-
-        self.vector_db = Chroma(
-            persist_directory=self.persist_directory,
-            embedding_function=self.embeddings
+            api_key=groq_api_key
         )
 
     # =========================
@@ -47,11 +54,7 @@ class AIEngine:
 
         docs = splitter.create_documents([text_content])
 
-        Chroma.from_documents(
-            documents=docs,
-            embedding=self.embeddings,
-            persist_directory=self.persist_directory
-        )
+        self.vector_db.add_documents(docs)
 
         return "تم تدريب البوت بنجاح على بياناتك!"
 
