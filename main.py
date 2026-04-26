@@ -1,16 +1,7 @@
-# This is a sample Python script.
+# Entry point for Uvicorn: `uvicorn main:app`
+# The real application is defined in app/main.py; this module re-exports it
+# so that Railway's default start command (`uvicorn main:app`) resolves correctly.
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+from app.main import app  # noqa: F401  – re-export for Uvicorn
 
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
-
-
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+__all__ = ["app"]
